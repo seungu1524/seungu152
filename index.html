@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>바다 속 순서 기억하기 게임</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&display=swap');
+  body {
+    font-family: 'Nanum Pen Script', cursive, Arial, sans-serif;
+    background: linear-gradient(to top, #034f84 0%, #69c0ff 100%);
+    color: #e0f7fa;
+    margin: 0; padding: 0;
+    overflow: hidden;
+  }
+  #intro, #game {
+    width: 100vw; height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  }
+  #intro {
+    background: url('https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1470&q=80') no-repeat center/cover;
+    color: #e0f7fa;
+    text-shadow: 0 0 8px #002233;
+  }
+  #intro h1 {
+    font-size: 4em;
+    margin-bottom: 0.3em;
+  }
+  #intro p {
+    font-size: 1.5em;
+    margin-bottom: 1.5em;
+    font-weight: 600;
+    text-shadow: 0 0 10px #004466;
+  }
+  #finalScore {
+    font-size: 1.5em;
+    margin-bottom: 1.5em;
+    color: #ffd54f;
+    text-shadow: 0 0 10px #ffca28;
+    min-height: 1.6em;
+  }
+  #startIntroBtn {
+    font-size: 1.6em;
+    padding: 15px 50px;
+    border: none;
+    border-radius: 30px;
+    cursor: pointer;
+    background: #0288d1cc;
+    color: #e0f7fa;
+    box-shadow: 0 6px #01579bcc;
+    user-select: none;
+    transition: all 0.3s ease;
+    font-weight: 700;
+  }
+  #startIntroBtn:hover {
+    background: #0277bdcc;
+  }
+  #startIntroBtn:active {
+    box-shadow: none;
+    transform: translateY(6px);
+  }
+  #game {
+    background: linear-gradient(to top, #003d5b, #016397);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    padding: 30px;
+  }
+  #game-container {
+    margin: 20px auto;
+    width: 520px;
+    display: grid;
+    grid-template-columns: repeat(3, 160px);
+    grid-template-rows: repeat(2, 160px);
+    gap: 20px;
+  }
+  .animal-btn {
+    border-radius: 20px;
+    cursor: pointer;
+    box-shadow: 0 0 15px #001f3f inset;
+    background: #01579b;
+    user-select: none;
+    transition: transform 0.15s ease, box-shadow 0.3s ease, filter 0.3s ease;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 5rem;
+    color: #e0f7fa;
+    text-shadow: 0 0 5px #002244;
+  }
+  .animal-btn:active {
+    transform: scale(1.1);
+    box-shadow: 0 0 30px #33b5e5;
+  }
+  /* 하이라이트 클래스 추가 */
+  .animal-btn.highlight {
+    filter: brightness(150%) drop-shadow(0 0 10px #33b5e5);
+  }
+  #level {
+    font-size: 28px;
+    margin-top: 20px;
+    font-weight: 600;
+    color: #ffd54f;
+    text-shadow: 0 0 15px #ffca28;
+  }
+  #message {
+    margin-top: 15px;
+    font-size: 20px;
+    height: 30px;
+    color: #b3e5fc;
+    font-weight: 500;
+  }
+</style>
+</head>
+<body>
+
+<div id="intro">
+  <h1>바다 속 순서 기억하기 게임</h1>
+  <p>바다 동물들의 소리와 순서를 기억해서 클릭하세요!</p>
+  <div id="finalScore"></div>
+  <button id="startIntroBtn">게임 시작</button>
+</div>
+
+<div id="game">
+  <div id="game-container">
+    <div id="fish" class="animal-btn" title="물고기">🐠</div>
+    <div id="octopus" class="animal-btn" title="문어">🐙</div>
+    <div id="dolphin" class="animal-btn" title="돌고래">🐬</div>
+    <div id="turtle" class="animal-btn" title="거북이">🐢</div>
+    <div id="whale" class="animal-btn" title="고래">🐳</div>
+    <div id="crab" class="animal-btn" title="게">🦀</div>
+  </div>
+  <div id="level">레벨: 0</div>
+  <div id="message"></div>
+</div>
+
+<audio id="bgm" loop>
+  <source src="https://cdn.pixabay.com/download/audio/2022/02/24/audio_d8b979a3c9.mp3?filename=relaxing-ocean-waves-112.mp3" type="audio/mpeg" />
+  <!-- mp3 포맷의 차분한 바다 파도 소리(픽사베이 무료 소스) -->
+</audio>
+
+<script>
+  const intro = document.getElementById('intro');
+  const game = document.getElementById('game');
+  const startIntroBtn = document.getElementById('startIntroBtn');
+  const finalScoreDisplay = document.getElementById('finalScore');
+  const bgm = document.getElementById('bgm');
+
+  const animalButtons = {
+    fish: document.getElementById('fish'),
+    octopus: document.getElementById('octopus'),
+    dolphin: document.getElementById('dolphin'),
+    turtle: document.getElementById('turtle'),
+    whale: document.getElementById('whale'),
+    crab: document.getElementById('crab'),
+  };
+
+  // 효과음 및 동물 소리
+  const sounds = {
+    fish: new Audio('https://actions.google.com/sounds/v1/animals/fish_swim.ogg'),
+    octopus: new Audio('https://actions.google.com/sounds/v1/animals/octopus.ogg'),
+    dolphin: new Audio('https://actions.google.com/sounds/v1/animals/dolphin_whistle.ogg'),
+    turtle: new Audio('https://actions.google.com/sounds/v1/animals/turtle.ogg'),
+    whale: new Audio('https://actions.google.com/sounds/v1/animals/whale_blow.ogg'),
+    crab: new Audio('https://actions.google.com/sounds/v1/animals/crab_click.ogg'),
+    click: new Audio('https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg')
+  };
+
+  let sequence = [];
+  let playerSequence = [];
+  let level = 0;
+  let canClick = false;
+
+  const levelDisplay = document.getElementById('level');
+  const messageDisplay = document.getElementById('message');
+
+  function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  const baseHighlightTime = 600;
+  const baseDelay = 1000;
+
+  async function playSequence() {
+    canClick = false;
+
+    // 속도 증가 (최대 90% 속도 증가)
+    const speedFactor = Math.min(level * 0.15, 0.9);
+    const delayTime = baseDelay * (1 - speedFactor);
+
+    for (const animal of sequence) {
+      await highlightButton(animal);
+      await sleep(delayTime);
+    }
+    canClick = true;
+  }
+
+  async function nextLevel() {
+    level++;
+    levelDisplay.textContent = `레벨: ${level}`;
+    playerSequence = [];
+    const animals = Object.keys(animalButtons);
+    const randomAnimal = animals[Math.floor(Math.random() * animals.length)];
+    sequence.push(randomAnimal);
+    messageDisplay.textContent = '잠시만 기다려 주세요...';
+
+    await sleep(1500);  // 시작 전 1.5초 딜레이 추가
+
+    messageDisplay.textContent = '컴퓨터가 보여줍니다...';
+    await playSequence();
+    messageDisplay.textContent = '이제 당신 차례입니다!';
+  }
+
+  function highlightButton(animal) {
+    return new Promise(resolve => {
+      const btn = animalButtons[animal];
+      const soundClone = sounds[animal].cloneNode();
+      soundClone.play();
+      btn.classList.add('highlight');
+      setTimeout(() => {
+        btn.classList.remove('highlight');
+        resolve();
+      }, baseHighlightTime);
+    });
+  }
+
+  function resetGame() {
+    sequence = [];
+    playerSequence = [];
+    level = 0;
+    levelDisplay.textContent = '레벨: 0';
+    messageDisplay.textContent = '';
+    canClick = false;
+  }
+
+  function gameOver() {
+    messageDisplay.textContent = `틀렸습니다! 최종 레벨: ${level}`;
+    canClick = false;
+    finalScoreDisplay.textContent = `최종 성공 레벨: ${level}개`;
+    setTimeout(() => {
+      game.style.display = 'none';
+      intro.style.display = 'flex';
+    }, 1500);
+  }
+
+  startIntroBtn.addEventListener('click', () => {
+    sounds.click.play();
+    intro.style.display = 'none';
+    game.style.display = 'flex';
+    finalScoreDisplay.textContent = '';
+    resetGame();
+    nextLevel();
+  });
+
+  Object.keys(animalButtons).forEach(animal => {
+    animalButtons[animal].addEventListener('click', () => {
+      if (!canClick) return;
+      // 클릭할 때 해당 동물 소리 바로 재생
+      const soundClone = sounds[animal].cloneNode();
+      soundClone.play();
+
+      sounds.click.play();
+
+      playerSequence.push(animal);
+      highlightButton(animal);
+
+      const currentIndex = playerSequence.length - 1;
+      if (playerSequence[currentIndex] !== sequence[currentIndex]) {
+        gameOver();
+        return;
+      }
+      if (playerSequence.length === sequence.length) {
+        messageDisplay.textContent = '정답입니다! 다음 레벨...';
+        canClick = false;
+        setTimeout(nextLevel, 1000);
+      }
+    });
+  });
+
+  // 페이지 열릴 때 bgm 준비 및 재생 (사용자 인터랙션 필요할 수 있음)
+  window.addEventListener('load', () => {
+    bgm.volume = 0.12;
+    bgm.play().catch(() => {
+      // 자동재생 제한 시 예외 처리 무시
+      // 사용자 클릭 시 재생할 수 있도록 함
+    });
+  });
+
+  // 사용자 클릭 시 bgm 재생 보장 (일부 브라우저 정책 대응)
+  document.body.addEventListener('click', () => {
+    if (bgm.paused) {
+      bgm.play();
+    }
+  }, {once: true});
+</script>
+
+</body>
+</html>
